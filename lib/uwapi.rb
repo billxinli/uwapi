@@ -3,33 +3,50 @@ require 'httparty'
 require 'json'
 
 require 'uwapi/version'
+require 'uwapi/service/course'
+require 'uwapi/service/event'
+require 'uwapi/service/exam_info'
+require 'uwapi/service/experimental'
+require 'uwapi/service/faculty_info'
+require 'uwapi/service/food_services'
+require 'uwapi/service/geolocation'
+require 'uwapi/service/other'
+require 'uwapi/service/professor'
+require 'uwapi/service/schedule'
+require 'uwapi/service/weather'
+require 'uwapi/service/wireless_data'
 
-require 'uwapi/course'
-require 'uwapi/event'
-require 'uwapi/exam_info'
-require 'uwapi/experimental'
-require 'uwapi/faculty_info'
-require 'uwapi/food_services'
-require 'uwapi/geolocation'
-require 'uwapi/other'
-require 'uwapi/professor'
-require 'uwapi/schedule'
-require 'uwapi/weather'
-require 'uwapi/wireless_data'
 module UWAPI
+  class Result
+    def initialize(args)
+      if args.is_a?(Hash) && args.has_key?('response')
+        @result = args
+      else
+        raise ArgumentError, 'args is not a UWAPI returned result'
+      end
+    end
+
+    def result
+      @result ||= {}
+      @result
+    end
+
+    def meta
+      @result['response']['meta']
+    end
+
+    def success?
+      Integer.new(@result['response']['meta']['Status']) == 200
+    end
+
+    def failure?
+      !success?
+    end
+  end
+
   class API
-    include Course
-    include Event
-    include ExamInfo
-    include Experimental
-    include FacultyInfo
-    include FoodServices
-    include Geolocation
-    include Other
-    include Professor
-    include Schedule
-    include Weather
-    include WirelessData
+    include Course, Event, ExamInfo, Experimental, FacultyInfo, FoodServices, Geolocation
+    include Other, Professor, Schedule, Weather, WirelessData
 
     def initialize(args)
       if args.include?(:api_key)
@@ -55,7 +72,8 @@ module UWAPI
 
     private
     def get(opt)
-      HTTParty.get(api_url, :query => {:key => api_key, :output => api_format}.merge(opt))
+      request = HTTParty.get(api_url, :query => {:key => api_key, :output => api_format}.merge(opt))
+      UWAPI::Result.new(request)
     end
   end
 end
